@@ -1,0 +1,10 @@
+# Ejemplos completos — ADK 2.0
+# Instalación:
+#   python -m venv .venv && source .venv/bin/activate
+#   pip install -r requirements.txt
+#
+# Verificación rápida (debe imprimir "ok"):
+#   python -c "from google.adk import Workflow; print('ok')"
+
+google-adk==2.9.1
+google-genai
