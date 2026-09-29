@@ -6,10 +6,8 @@ Agente single-agent con Google ADK2 que resuelve una tarea de mesa de
 reclamos acotada y medible: consultar, listar y liquidar reclamos,
 respetando el circuito de estados y un gate de aprobación humana por monto.
 
-Setup y cómo correrlo: ver README.md de esta carpeta.
-Corre con una API key gratuita de Google AI Studio (https://aistudio.google.com/apikey):
-    export GOOGLE_API_KEY="tu-api-key"
-    export GOOGLE_GENAI_USE_VERTEXAI=FALSE
+Setup y cómo correrlo: ver README.md de esta carpeta (./setup.sh y ./run.sh).
+Usa una API key gratuita de Google AI Studio, que se configura en .env.
 """
 
 import asyncio

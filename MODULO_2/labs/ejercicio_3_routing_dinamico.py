@@ -14,10 +14,8 @@ LlmAgent nuevo con el modelo correspondiente en cada request.
 Dominio: mesa de reclamos de tarjeta de crédito — las mismas 5 queries que
 usa el Ejercicio 1.
 
-Setup y cómo correrlo: ver README.md de esta carpeta.
-Corre con una API key gratuita de Google AI Studio (https://aistudio.google.com/apikey):
-    export GOOGLE_API_KEY="tu-api-key"
-    export GOOGLE_GENAI_USE_VERTEXAI=FALSE
+Setup y cómo correrlo: ver README.md de esta carpeta (./setup.sh y ./run.sh).
+Usa una API key gratuita de Google AI Studio, que se configura en .env.
 
 Cuota — atención con gemini-2.5-pro: 2 de las 5 queries de evaluación rutean a
 ese modelo, que suele tener la cuota gratuita más ajustada de los tres. Si te
@@ -34,6 +32,12 @@ from google.adk.agents import LlmAgent
 from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
 from google.genai import types
+
+import logging
+
+# google-genai avisa (WARNING) cada vez que se llama generate_content con AFC
+# activo; es ruido para este lab, no un problema.
+logging.getLogger("google_genai.models").setLevel(logging.ERROR)
 
 # -------------------------------------------------------
 # 1. Modelos disponibles con sus costos (por millón de tokens)

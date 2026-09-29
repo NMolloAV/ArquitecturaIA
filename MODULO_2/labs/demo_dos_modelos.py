@@ -11,9 +11,8 @@ Uso:
     python demo_dos_modelos.py simple      # clasificación simple
     python demo_dos_modelos.py compleja    # decisión de negocio
 
-Corre con una API key gratuita de Google AI Studio (https://aistudio.google.com/apikey):
-    export GOOGLE_API_KEY="tu-api-key"
-export GOOGLE_GENAI_USE_VERTEXAI=FALSE
+Credenciales: la API key de AI Studio que va en .env (ver README.md).
+Usar ./run.sh simple  |  ./run.sh compleja
 
 Modelos: gemini-2.5-flash-lite (barato) y gemini-2.5-pro (caro) — mismos $
 por millón de tokens que MODELOS_CONFIG en ejercicio_3_routing_dinamico.py.
@@ -25,6 +24,12 @@ import sys
 import time
 
 from google import genai
+
+import logging
+
+# google-genai avisa (WARNING) cada vez que se llama generate_content con AFC
+# activo; es ruido para este lab, no un problema.
+logging.getLogger("google_genai.models").setLevel(logging.ERROR)
 
 MODELOS_CONFIG = {
     "gemini-2.5-flash-lite": {"input_cost_per_mtok": 0.10, "output_cost_per_mtok": 0.40},

@@ -1,88 +1,70 @@
 # Labs — Módulo 2: Diseño de Sistemas Agénticos
 
 **Curso**: Arquitectura de Agentes IA — UTDT
-**Entorno recomendado**: Google Colab o entorno local con Python 3.10+ — **no requiere cuenta de GCP**, solo una API key gratuita de [Google AI Studio](https://aistudio.google.com/apikey)
+**Stack**: Google ADK 2 + Gemini, con una API key gratuita de [Google AI Studio](https://aistudio.google.com/apikey). No hace falta cuenta de GCP ni `gcloud`.
 
-Tres ejercicios con Google ADK2, todos ambientados en una mesa de reclamos de tarjeta de crédito (datos sintéticos, sin relación con personas ni operaciones reales):
+Tres ejercicios y un experimento de apoyo, todos ambientados en una mesa de reclamos de tarjeta de crédito (datos sintéticos, sin relación con personas ni operaciones reales):
 
-| # | Archivo | Qué muestra |
-|---|---|---|
-| 1 | [`ejercicio_1_agente_reclamos.py`](ejercicio_1_agente_reclamos.py) | Un agente con tools (`FunctionTool`) y un gate de aprobación humana por monto |
-| 2 | [`ejercicio_2_pipeline_paralelo.py`](ejercicio_2_pipeline_paralelo.py) | Multiagente con `ParallelAgent` + `SequentialAgent`, y benchmark paralelo vs. secuencial |
-| 3 | [`ejercicio_3_routing_dinamico.py`](ejercicio_3_routing_dinamico.py) | Un router que elige dinámicamente el modelo (barato/medio/caro) según la complejidad de la query |
-
-Bonus opcional: [`demo_dos_modelos.py`](demo_dos_modelos.py) corre la misma query con un modelo barato y uno caro, y muestra el contraste de costo/latencia lado a lado — es el ejemplo más rápido para entender el problema que resuelve el Ejercicio 3.
-
-Los tres ejercicios son independientes entre sí y se pueden correr en cualquier orden (el Ejercicio 3 reutiliza el dominio de datos del Ejercicio 1, pero no importa su código).
-
----
-
-## Setup (una sola vez)
-
-```bash
-cd MODULO_2/labs
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-```
-
-En Google Colab:
-
-```python
-!pip install -q "google-adk>=2.8.0" nest_asyncio
-```
-
-### Autenticación
-
-Estos labs corren contra **Google AI Studio**, no contra Vertex AI: no hace falta cuenta de GCP, `gcloud`, ni proyecto configurado.
-
-1. Conseguí una API key gratuita en [aistudio.google.com/apikey](https://aistudio.google.com/apikey).
-2. Configurala **antes** de correr cualquier script:
-
-```bash
-export GOOGLE_API_KEY="tu-api-key-de-ai-studio"
-export GOOGLE_GENAI_USE_VERTEXAI=FALSE
-```
-
-En un notebook (Colab/Jupyter):
-
-```python
-import os
-os.environ["GOOGLE_API_KEY"] = "tu-api-key-de-ai-studio"
-os.environ["GOOGLE_GENAI_USE_VERTEXAI"] = "FALSE"
-```
-
-> ⚠️ **No pegues tu API key en un notebook que subas a un repositorio.** Es la fuga de credenciales más común en entregas de cursos. Si usás Colab, guardala en *Secrets* (ícono de llave en el panel izquierdo) en vez de escribirla en una celda.
-
-### Cuota del tier gratuito — leé esto antes de correr nada
-
-La API key gratuita tiene un límite de requests por minuto y por día, distinto para cada modelo. Consumo aproximado de cada ejercicio:
-
-| Ejercicio | Llamadas al modelo | Modelos | Comentario |
+| Ejercicio | Archivo | Qué muestra | Guía detallada |
 |---|---|---|---|
-| 1 | ~6–18 | `gemini-2.5-flash` | 6 casos de prueba × 1 a 3 turnos con tool calls cada uno |
-| 2 | **~18** | `gemini-2.5-flash` | 3 mensajes × (3 análisis en paralelo + los mismos 3 en secuencial) |
-| 3 | ~10 | `gemini-2.5-flash-lite` + `gemini-2.5-flash` + **`gemini-2.5-pro`** | 5 queries × (1 clasificación + 1 ejecución); 2 de las 5 caen en `gemini-2.5-pro`, que suele tener la cuota gratuita más ajustada |
-| bonus | ~2 | `gemini-2.5-flash-lite` + `gemini-2.5-pro` | `demo_dos_modelos.py`, una corrida por modelo |
+| 1 | [`ejercicio_1_agente_reclamos.py`](ejercicio_1_agente_reclamos.py) | Agente con tools (`FunctionTool`) y gate de aprobación humana por monto | [readmes/ejercicio_1.md](readmes/ejercicio_1.md) |
+| 2 | [`ejercicio_2_pipeline_paralelo.py`](ejercicio_2_pipeline_paralelo.py) | `ParallelAgent` + `SequentialAgent` y benchmark paralelo vs. secuencial | [readmes/ejercicio_2.md](readmes/ejercicio_2.md) |
+| 3 | [`ejercicio_3_routing_dinamico.py`](ejercicio_3_routing_dinamico.py) | Router que elige el modelo (barato/medio/caro) según la complejidad de la query | [readmes/ejercicio_3.md](readmes/ejercicio_3.md) |
+| Bonus | [`demo_dos_modelos.py`](demo_dos_modelos.py) | La misma query en un modelo barato y uno caro, lado a lado | [readmes/demo_dos_modelos.md](readmes/demo_dos_modelos.md) |
 
-**El Ejercicio 2 es el que más rápido agota la cuota**: dispara los tres analizadores en paralelo (tres requests en la misma fracción de segundo) y lo repite tres veces.
+Los ejercicios son independientes y se pueden correr en cualquier orden. El bonus es el ejemplo más rápido para entender el problema que resuelve el Ejercicio 3.
 
-No hace falta correr los tres ejercicios el mismo día — son independientes.
-
----
-
-## Cómo correr cada ejercicio
+## Arranque rápido
 
 ```bash
-python ejercicio_1_agente_reclamos.py
-python ejercicio_2_pipeline_paralelo.py
-python ejercicio_3_routing_dinamico.py
-
-# Bonus: comparación rápida modelo barato vs. caro
-python demo_dos_modelos.py simple      # clasificación simple
-python demo_dos_modelos.py compleja    # decisión de negocio
+cd labs_mod2_alumnos
+./setup.sh        # una sola vez: crea .venv, instala dependencias, crea .env
+# editá .env y pegá tu GOOGLE_API_KEY
+./check.sh        # verifica paquetes, key y acceso a los 3 modelos
+./run.sh 1        # corre el Ejercicio 1
 ```
 
-Cada script imprime en consola su propia evaluación (casos de prueba, benchmark de tiempos o análisis de costo, según el ejercicio) — no hace falta ningún argumento salvo en `demo_dos_modelos.py`.
+> ⚠️ **Nunca subas `.env` ni pegues tu API key en un notebook o repositorio.** Es la fuga de credenciales más común en entregas de cursos. En Colab usá *Secrets* (ícono de llave).
+
+## Scripts
+
+| Script | Para qué |
+|---|---|
+| `setup.sh` | Crea `.venv`, instala `requirements.txt` y crea `.env` desde `.env.example`. Se puede repetir sin problema. |
+| `check.sh` | Diagnóstico: paquetes, API key y una llamada mínima a cada modelo. |
+| `env.sh` | `source ./env.sh` carga `.env` y activa el venv en tu shell, para correr `python ...` a mano. |
+| `run.sh` | Lanza un ejercicio (tabla siguiente). |
+
+| Comando | Qué corre | Tiempo aprox. | Llamadas al modelo |
+|---|---|---|---|
+| `./run.sh 1` | Ejercicio 1 (6 casos de prueba) | 1–2 min | ~12–18 |
+| `./run.sh 2` | Ejercicio 2 (benchmark ×3 mensajes) | ~30 s | ~18 |
+| `./run.sh 3` | Ejercicio 3 (router, 5 queries) | ~2 min (2 casos a `gemini-2.5-pro` tardan ~40 s c/u) | ~10 |
+| `./run.sh simple` | Bonus, clasificación | ~10 s | 2 |
+| `./run.sh compleja` | Bonus, decisión de negocio | ~30–40 s | 2 |
+
+`run.sh` silencia los warnings de ADK (`ParallelAgent` deprecado a favor de `Workflow`, JSON schema experimental). Para verlos: `source ./env.sh && python ejercicio_2_pipeline_paralelo.py`.
+
+En Google Colab: `!pip install -q "google-adk>=2.8.0" nest_asyncio` y definí `GOOGLE_API_KEY` desde *Secrets* con `os.environ[...]`.
+
+## Cómo leer las salidas — idea general
+
+**Nada de estos labs es determinista.** Gemini no responde igual dos veces: los textos, las latencias, los costos, el speedup y hasta si un caso de prueba pasa o falla cambian entre corridas. Lo que es estable es la **estructura del argumento** que cada ejercicio quiere mostrar; cada guía en `readmes/` dice qué mirar y qué conclusión se sostiene aunque los números cambien. **Si tu corrida sale distinta de los ejemplos de las guías, no es un error: es parte de lo que se aprende.**
+
+Los múltiplos de costo usan los precios de referencia de la [página de precios de Gemini](https://ai.google.dev/gemini-api/docs/pricing); pueden cambiar.
+
+## Cuota
+
+La API key gratuita tiene límites por minuto y por día, distintos para cada modelo. Consumo aproximado:
+
+| Ejercicio | Llamadas | Modelos | Comentario |
+|---|---|---|---|
+| 1 | ~6–18 | `gemini-2.5-flash` | 6 casos × 1 a 3 turnos con tool calls |
+| 2 | **~18** | `gemini-2.5-flash` | el que más rápido agota la cuota: 3 requests simultáneos, ×3 mensajes, ×2 modos |
+| 3 | ~10 | `flash-lite` + `flash` + **`pro`** | 2 de 5 queries caen en `pro`, que suele tener la cuota gratuita más ajustada |
+| bonus | ~2 | `flash-lite` + `pro` | una corrida por modelo |
+
+No hace falta correr todo el mismo día.
 
 ---
 

@@ -8,37 +8,13 @@
 #     !pip install -q google-adk nest_asyncio
 #
 # ==============================================================================
-# AUTENTICACIÓN Y CUOTA — LEER ANTES DE CORRER NADA
+# AUTENTICACIÓN Y CUOTA — se configura en .env (ver README.md)
 # ==============================================================================
-# Los cuatro scripts de esta carpeta llaman a un modelo real. No hay ninguna
-# parte que corra offline. Se necesita una API key gratuita de Google AI
-# Studio (https://aistudio.google.com/apikey):
+# Todos los scripts llaman a un modelo real; nada corre offline. Hace falta una
+# API key gratuita de Google AI Studio (https://aistudio.google.com/apikey).
+# No hace falta gcloud ni un proyecto de GCP. La cuota gratuita es limitada:
+# ver README.md, "Cuota" y "Errores frecuentes".
 #
-#     export GOOGLE_API_KEY="tu-api-key-de-ai-studio"
-#     export GOOGLE_GENAI_USE_VERTEXAI=FALSE
-#
-# No hace falta gcloud, ni proyecto de GCP, ni Vertex AI habilitado.
-# OJO: si tenés GOOGLE_GENAI_USE_VERTEXAI=TRUE en el entorno, el cliente
-# ignora la API key y busca credenciales de Vertex. Ver README.md,
-# "Errores frecuentes" #3.
-#
-# CUOTA. El tier gratuito tiene límite por minuto y por día, distinto para
-# cada modelo. Consumo aproximado de los tres ejercicios:
-#
-#   Ejercicio 1   ~6-18 llamadas   gemini-2.5-flash
-#   Ejercicio 2   ~18 llamadas     gemini-2.5-flash
-#                                  <-- EL QUE MAS RAPIDO AGOTA LA CUOTA:
-#                                      el modo paralelo dispara 3 requests
-#                                      en la misma fracción de segundo.
-#   Ejercicio 3   ~10 llamadas     gemini-2.5-flash-lite + gemini-2.5-flash
-#                                  + gemini-2.5-pro (el de cuota gratuita
-#                                  más ajustada de los tres)
-#
-# Ante un 429 RESOURCE_EXHAUSTED: no es un bug. Ver README.md,
-# "Errores frecuentes" #1. Resumen: esperar, recortar las listas de casos
-# de prueba, o intercalar sleep(). Los tres ejercicios son independientes
-# y no hace falta correrlos el mismo día.
-
 # --- Los tres ejercicios: agentes con ADK2 -----------------------------------
 google-adk>=2.8.0
 # google-genai llega como dependencia de google-adk — no hace falta pinnearlo

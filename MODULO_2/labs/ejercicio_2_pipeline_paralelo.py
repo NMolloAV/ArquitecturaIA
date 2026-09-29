@@ -10,10 +10,8 @@ después de los tres análisis — no lo ejecuta el benchmark de abajo (que solo
 mide el paralelismo), pero queda armado para que lo pruebes vos si querés
 ver la síntesis completa (ver README, sección "Adaptar el dominio").
 
-Setup y cómo correrlo: ver README.md de esta carpeta.
-Corre con una API key gratuita de Google AI Studio (https://aistudio.google.com/apikey):
-    export GOOGLE_API_KEY="tu-api-key"
-    export GOOGLE_GENAI_USE_VERTEXAI=FALSE
+Setup y cómo correrlo: ver README.md de esta carpeta (./setup.sh y ./run.sh).
+Usa una API key gratuita de Google AI Studio, que se configura en .env.
 
 Cuota: este es el ejercicio que más rápido agota el tier gratuito — dispara
 3 requests en la misma fracción de segundo, y lo repite 3 veces (una por
@@ -26,6 +24,12 @@ import time
 from google.adk.agents import LlmAgent, ParallelAgent, SequentialAgent
 from google.adk.runners import InMemoryRunner
 from google.genai import types
+
+import logging
+
+# google-genai avisa (WARNING) cada vez que se llama generate_content con AFC
+# activo; es ruido para este lab, no un problema.
+logging.getLogger("google_genai.models").setLevel(logging.ERROR)
 
 
 # -------------------------------------------------------
