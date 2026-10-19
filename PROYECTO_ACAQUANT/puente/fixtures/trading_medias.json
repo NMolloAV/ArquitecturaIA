@@ -1,0 +1,602 @@
+{
+  "fecha": "2026-10-16",
+  "ts": "2026-10-19T21:20:57.404662+00:00",
+  "calculado_en": "2026-10-16T22:45:16.147114+00:00",
+  "nota": "SUBCONJUNTO de 12 tickers del universo real (229 filas en vivo); los campos son los de la herramienta trading_medias",
+  "sin_precio": [
+    "ALUA",
+    "BHIP",
+    "BPAT",
+    "BRKB",
+    "BYMA",
+    "IEBA",
+    "IRSA",
+    "IWDA",
+    "METR",
+    "TGNO4",
+    "TRAN",
+    "TXAR",
+    "TXR",
+    "VALO"
+  ],
+  "auditoria": [
+    {
+      "titulo": "Fuente de datos",
+      "detalle": "Cierre diario en USD de la ACCIÓN (no del CEDEAR): mercado.precios_acciones, de Yahoo, cargado post-cierre de EEUU. La tabla se PRECALCULA cada noche (jobs/estrategias_acciones → mercado.medias_moviles), después de que entran los precios: la pantalla no calcula nada al abrirse. Ajustado por splits, no por dividendos. Último cierre del universo: 2026-10-16. Universo: los CEDEAR activos, con la misma identidad con la que se cargan los precios."
+    },
+    {
+      "titulo": "Las medias",
+      "detalle": "SMA(T) = promedio de los últimos T cierres (ec. 3.54), T = 50 y 200 ruedas. Solo se muestra con la ventana completa: una acción con menos ruedas de historia queda sin esa media. Dif. = último ÷ SMA − 1."
+    },
+    {
+      "titulo": "Las señales del libro",
+      "detalle": "3.11 (una media): comprado si el último está arriba de la SMA 200, vendido si está abajo. 3.12 (dos medias): comprado si la SMA 50 está arriba de la SMA 200 (tendencia alcista), vendido si está abajo (bajista). El cambio es el cruce: GOLDEN cuando la corta pasa arriba, DEATH cuando pasa abajo. «Desde el cruce» es el último ÷ el cierre del día del cruce − 1. «50 vs 200» = SMA 50 ÷ SMA 200 − 1: cuánto le falta para cruzar."
+    },
+    {
+      "titulo": "Pivots anuales (3.14, soporte y resistencia)",
+      "detalle": "Floor Trader sobre el máximo, el mínimo y el último cierre del año 2025: PP = (H + L + C) ÷ 3 · R1 = 2·PP − L · S1 = 2·PP − H · R2 = PP + (H − L) · S2 = PP − (H − L) · R3 = H + 2·(PP − L) · S3 = L − 2·(H − PP) — la misma fórmula y el mismo año que la ventana PIVOTS del scanner (quant.pivot_points). PIVOT = el nivel que el último tiene debajo (entre R1 y R2 está en R1). «vs anterior» = ese nivel ÷ último − 1: cuánto puede caer hasta el soporte; «vs siguiente» = el nivel de arriba ÷ último − 1: cuánto puede subir hasta la resistencia. Arriba de R3 no hay techo; debajo de S3, no hay piso."
+    },
+    {
+      "titulo": "Si no coincide con TradingView",
+      "detalle": "En rueda, TradingView suma la vela en curso (precio en vivo) y acá el último es el cierre anterior; y TradingView puede tener prendido el ajuste por dividendos (botón ADJ). Si con el mercado cerrado y sin ADJ sigue sin coincidir, correr `python -m scripts.diag_medias_moviles --ticker X`: compara la serie guardada contra la de Yahoo fecha por fecha y dice si faltan ruedas."
+    },
+    {
+      "titulo": "Lo que falta",
+      "detalle": "Sin 200 ruedas de historia (sin SMA 200): SKHY, SPCX. Sin ningún precio cargado: ALUA, BHIP, BPAT, BRKB, BYMA, IEBA, IRSA, IWDA, METR, TGNO4, TRAN, TXAR, TXR, VALO. "
+    }
+  ],
+  "filas": [
+    {
+      "ticker": "AAPL",
+      "cedear": "AAPL",
+      "rubro": "Tecnologia",
+      "fecha": "2026-10-16",
+      "ultimo": 343.459991455078,
+      "sma50": 325.699400024414,
+      "dif50": 0.05453062372645667,
+      "sma200": 292.480300140381,
+      "dif200": 0.17430128213841556,
+      "senal_precio": "arriba",
+      "tendencia": "alcista",
+      "estado": "alcista",
+      "dist_50_200": 0.11357722167301154,
+      "cruce": {
+        "tipo": "dorado",
+        "fecha": "2025-09-15",
+        "ruedas": 274,
+        "precio": 236.699996948242,
+        "dif_desde": 0.45103504809161743
+      },
+      "ruedas": 200,
+      "pivot": {
+        "periodo": "2025",
+        "niveles": {
+          "s3": 78.4300079345689,
+          "s2": 123.820007324218,
+          "s1": 197.83999633789,
+          "pp": 243.229995727539,
+          "r1": 317.249984741211,
+          "r2": 362.63998413086,
+          "r3": 436.659973144532
+        },
+        "zona": "R1",
+        "anterior": {
+          "nivel": "R1",
+          "precio": 317.249984741211,
+          "dif": -0.07631167345817358
+        },
+        "siguiente": {
+          "nivel": "R2",
+          "precio": 362.63998413086,
+          "dif": 0.055843455287253096
+        }
+      }
+    },
+    {
+      "ticker": "AMZN",
+      "cedear": "AMZN",
+      "rubro": "Cloud hyperscalers",
+      "fecha": "2026-10-16",
+      "ultimo": 250,
+      "sma50": 257.075999450684,
+      "dif50": -0.0275249321827159,
+      "sma200": 242.72059967041,
+      "dif200": 0.02999086331969636,
+      "senal_precio": "arriba",
+      "tendencia": "alcista",
+      "estado": "alcista",
+      "dist_50_200": 0.05914372245193511,
+      "cruce": {
+        "tipo": "dorado",
+        "fecha": "2026-05-06",
+        "ruedas": 113,
+        "precio": 274.989990234375,
+        "dif_desde": -0.0908759995702969
+      },
+      "ruedas": 200,
+      "pivot": {
+        "periodo": "2025",
+        "niveles": {
+          "s3": 78.0466715494779,
+          "s2": 119.713338216145,
+          "s1": 175.266672770182,
+          "pp": 216.933339436849,
+          "r1": 272.486673990886,
+          "r2": 314.153340657553,
+          "r3": 369.70667521159
+        },
+        "zona": "PP",
+        "anterior": {
+          "nivel": "PP",
+          "precio": 216.933339436849,
+          "dif": -0.13226664225260398
+        },
+        "siguiente": {
+          "nivel": "R1",
+          "precio": 272.486673990886,
+          "dif": 0.08994669596354399
+        }
+      }
+    },
+    {
+      "ticker": "GGAL",
+      "cedear": "GGAL",
+      "rubro": "Financiero",
+      "fecha": "2026-10-16",
+      "ultimo": 36.0200004577637,
+      "sma50": 41.2010000610352,
+      "dif50": -0.12574936519978552,
+      "sma200": 46.5285773849487,
+      "dif200": -0.22585210031769343,
+      "senal_precio": "abajo",
+      "tendencia": "bajista",
+      "estado": "bajista",
+      "dist_50_200": -0.11450118665430953,
+      "cruce": {
+        "tipo": "muerte",
+        "fecha": "2026-08-28",
+        "ruedas": 34,
+        "precio": 42.2400016784668,
+        "dif_desde": -0.14725381092666823
+      },
+      "ruedas": 200,
+      "pivot": {
+        "periodo": "2025",
+        "niveles": {
+          "s3": -19.5566685994467,
+          "s2": 3.16666539510086,
+          "s1": 28.5533320109049,
+          "pp": 51.2766660054525,
+          "r1": 76.6633326212565,
+          "r2": 99.3866666158041,
+          "r3": 124.773333231608
+        },
+        "zona": "S1",
+        "anterior": {
+          "nivel": "S1",
+          "precio": 28.5533320109049,
+          "dif": -0.20729229183697706
+        },
+        "siguiente": {
+          "nivel": "PP",
+          "precio": 51.2766660054525,
+          "dif": 0.42356094818983814
+        }
+      }
+    },
+    {
+      "ticker": "GOOGL",
+      "cedear": "GOOGL",
+      "rubro": "Cloud hyperscalers",
+      "fecha": "2026-10-16",
+      "ultimo": 340.589996337891,
+      "sma50": 344.580399169922,
+      "dif50": -0.011580469584583586,
+      "sma200": 340.901974334717,
+      "dif200": -0.0009151545614684009,
+      "senal_precio": "abajo",
+      "tendencia": "alcista",
+      "estado": "perdiendo",
+      "dist_50_200": 0.010790271433257503,
+      "cruce": {
+        "tipo": "dorado",
+        "fecha": "2025-07-24",
+        "ruedas": 310,
+        "precio": 192.169998168945,
+        "dif_desde": 0.7723369911179556
+      },
+      "ruedas": 200,
+      "pivot": {
+        "periodo": "2025",
+        "niveles": {
+          "s3": 4.44334920247354,
+          "s2": 72.4866739908853,
+          "s1": 192.743336995443,
+          "pp": 260.786661783854,
+          "r1": 381.043324788412,
+          "r2": 449.086649576823,
+          "r3": 569.343312581381
+        },
+        "zona": "PP",
+        "anterior": {
+          "nivel": "PP",
+          "precio": 260.786661783854,
+          "dif": -0.23430909719047077
+        },
+        "siguiente": {
+          "nivel": "R1",
+          "precio": 381.043324788412,
+          "dif": 0.11877427078154179
+        }
+      }
+    },
+    {
+      "ticker": "MELI",
+      "cedear": "MELI",
+      "rubro": "Aplicacion final",
+      "fecha": "2026-10-16",
+      "ultimo": 1834,
+      "sma50": 1859.97839111328,
+      "dif50": -0.01396703920723008,
+      "sma200": 1831.62887451172,
+      "dif200": 0.0012945447198806637,
+      "senal_precio": "arriba",
+      "tendencia": "alcista",
+      "estado": "alcista",
+      "dist_50_200": 0.01547776244197796,
+      "cruce": {
+        "tipo": "dorado",
+        "fecha": "2026-09-08",
+        "ruedas": 28,
+        "precio": 1926.25,
+        "dif_desde": -0.047890979883192686
+      },
+      "ruedas": 200,
+      "pivot": {
+        "periodo": "2025",
+        "niveles": {
+          "s3": 661.396809895836,
+          "s2": 1184.35343424479,
+          "s1": 1599.30672200521,
+          "pp": 2122.26334635416,
+          "r1": 2537.21663411458,
+          "r2": 3060.17325846353,
+          "r3": 3475.12654622395
+        },
+        "zona": "S1",
+        "anterior": {
+          "nivel": "S1",
+          "precio": 1599.30672200521,
+          "dif": -0.127967981458446
+        },
+        "siguiente": {
+          "nivel": "PP",
+          "precio": 2122.26334635416,
+          "dif": 0.15717739713967283
+        }
+      }
+    },
+    {
+      "ticker": "META",
+      "cedear": "META",
+      "rubro": "Cloud hyperscalers",
+      "fecha": "2026-10-16",
+      "ultimo": 709.325012207031,
+      "sma50": 655.240096435547,
+      "dif50": 0.08254213389214371,
+      "sma200": 631.976747131348,
+      "dif200": 0.12239099844540191,
+      "senal_precio": "arriba",
+      "tendencia": "alcista",
+      "estado": "alcista",
+      "dist_50_200": 0.036810451349350126,
+      "cruce": {
+        "tipo": "dorado",
+        "fecha": "2026-10-06",
+        "ruedas": 8,
+        "precio": 738.880004882812,
+        "dif_desde": -0.03999971914312195
+      },
+      "ruedas": 200,
+      "pivot": {
+        "periodo": "2025",
+        "niveles": {
+          "s3": 178.059997558594,
+          "s2": 328.929992675782,
+          "s1": 494.510009765625,
+          "pp": 645.380004882813,
+          "r1": 810.960021972656,
+          "r2": 961.830017089844,
+          "r3": 1127.41003417969
+        },
+        "zona": "PP",
+        "anterior": {
+          "nivel": "PP",
+          "precio": 645.380004882813,
+          "dif": -0.090149094172298
+        },
+        "siguiente": {
+          "nivel": "R1",
+          "precio": 810.960021972656,
+          "dif": 0.14328411943263153
+        }
+      }
+    },
+    {
+      "ticker": "MSFT",
+      "cedear": "MSFT",
+      "rubro": "Cloud hyperscalers",
+      "fecha": "2026-10-16",
+      "ultimo": 529.049987792969,
+      "sma50": 505.532399902344,
+      "dif50": 0.04652043646493875,
+      "sma200": 435.252999267578,
+      "dif200": 0.21549992460299605,
+      "senal_precio": "arriba",
+      "tendencia": "alcista",
+      "estado": "alcista",
+      "dist_50_200": 0.1614679295789545,
+      "cruce": {
+        "tipo": "dorado",
+        "fecha": "2026-08-31",
+        "ruedas": 33,
+        "precio": 507.290008544922,
+        "dif_desde": 0.04289455514896079
+      },
+      "ruedas": 200,
+      "pivot": {
+        "periodo": "2025",
+        "niveles": {
+          "s3": 156.463328043621,
+          "s2": 250.626668294271,
+          "s1": 367.12333170573,
+          "pp": 461.28667195638,
+          "r1": 577.783335367839,
+          "r2": 671.946675618489,
+          "r3": 788.443339029948
+        },
+        "zona": "PP",
+        "anterior": {
+          "nivel": "PP",
+          "precio": 461.28667195638,
+          "dif": -0.1280849019943774
+        },
+        "siguiente": {
+          "nivel": "R1",
+          "precio": 577.783335367839,
+          "dif": 0.09211482600759568
+        }
+      }
+    },
+    {
+      "ticker": "NVDA",
+      "cedear": "NVDA",
+      "rubro": "Aceleradores y chips",
+      "fecha": "2026-10-16",
+      "ultimo": 214.130004882812,
+      "sma50": 223.076600646973,
+      "dif50": -0.04010548725511254,
+      "sma200": 202.97939201355,
+      "dif200": 0.054934704250752864,
+      "senal_precio": "arriba",
+      "tendencia": "alcista",
+      "estado": "alcista",
+      "dist_50_200": 0.09901107907585693,
+      "cruce": {
+        "tipo": "dorado",
+        "fecha": "2025-06-27",
+        "ruedas": 328,
+        "precio": 157.75,
+        "dif_desde": 0.35740098182448166
+      },
+      "ruedas": 200,
+      "pivot": {
+        "periodo": "2025",
+        "niveles": {
+          "s3": -14.2199986775713,
+          "s2": 36.2000020345053,
+          "s1": 111.350001017253,
+          "pp": 161.770001729329,
+          "r1": 236.920000712077,
+          "r2": 287.340001424153,
+          "r3": 362.490000406901
+        },
+        "zona": "PP",
+        "anterior": {
+          "nivel": "PP",
+          "precio": 161.770001729329,
+          "dif": -0.24452436351523132
+        },
+        "siguiente": {
+          "nivel": "R1",
+          "precio": 236.920000712077,
+          "dif": 0.10643065105115657
+        }
+      }
+    },
+    {
+      "ticker": "PAM",
+      "cedear": "PAMP",
+      "rubro": "Energia",
+      "fecha": "2026-10-16",
+      "ultimo": 81.0999984741211,
+      "sma50": 81.2873997497559,
+      "dif50": -0.002305416044943387,
+      "sma200": 82.86,
+      "dif200": -0.021240665289390614,
+      "senal_precio": "abajo",
+      "tendencia": "bajista",
+      "estado": "bajista",
+      "dist_50_200": -0.018979003744196143,
+      "cruce": {
+        "tipo": "muerte",
+        "fecha": "2026-08-11",
+        "ruedas": 47,
+        "precio": 79.8099975585938,
+        "dif_desde": 0.01616340001238825
+      },
+      "ruedas": 200,
+      "pivot": {
+        "periodo": "2025",
+        "niveles": {
+          "s3": 20.5233319600424,
+          "s2": 37.736666361491,
+          "s1": 63.1233342488607,
+          "pp": 80.3366686503093,
+          "r1": 105.723336537679,
+          "r2": 122.936670939128,
+          "r3": 148.323338826497
+        },
+        "zona": "PP",
+        "anterior": {
+          "nivel": "PP",
+          "precio": 80.3366686503093,
+          "dif": -0.009412205156272169
+        },
+        "siguiente": {
+          "nivel": "R1",
+          "precio": 105.723336537679,
+          "dif": 0.3036169978648666
+        }
+      }
+    },
+    {
+      "ticker": "TSLA",
+      "cedear": "TSLA",
+      "rubro": "Tecnologia",
+      "fecha": "2026-10-16",
+      "ultimo": 354.720001220703,
+      "sma50": 359.462198486328,
+      "dif50": -0.013192478334562274,
+      "sma200": 388.024449462891,
+      "dif200": -0.08583079826100781,
+      "senal_precio": "abajo",
+      "tendencia": "bajista",
+      "estado": "bajista",
+      "dist_50_200": -0.07360941047941505,
+      "cruce": {
+        "tipo": "muerte",
+        "fecha": "2026-04-09",
+        "ruedas": 132,
+        "precio": 345.619995117188,
+        "dif_desde": 0.026329512852488524
+      },
+      "ruedas": 200,
+      "pivot": {
+        "periodo": "2025",
+        "niveles": {
+          "s3": -8.20998128255258,
+          "s2": 103.020009358724,
+          "s1": 276.370005289713,
+          "pp": 387.59999593099,
+          "r1": 560.949991861979,
+          "r2": 672.179982503256,
+          "r3": 845.529978434246
+        },
+        "zona": "S1",
+        "anterior": {
+          "nivel": "S1",
+          "precio": 276.370005289713,
+          "dif": -0.2208784271012716
+        },
+        "siguiente": {
+          "nivel": "PP",
+          "precio": 387.59999593099,
+          "dif": 0.09269281291479659
+        }
+      }
+    },
+    {
+      "ticker": "VIST",
+      "cedear": "VIST",
+      "rubro": "Energia",
+      "fecha": "2026-10-16",
+      "ultimo": 71.9499969482422,
+      "sma50": 70.1394000244141,
+      "dif50": 0.025814263070369492,
+      "sma200": 65.8820499420166,
+      "dif200": 0.09210319065004913,
+      "senal_precio": "arriba",
+      "tendencia": "alcista",
+      "estado": "alcista",
+      "dist_50_200": 0.06462078951921568,
+      "cruce": {
+        "tipo": "dorado",
+        "fecha": "2025-12-11",
+        "ruedas": 212,
+        "precio": 49.9199981689453,
+        "dif_desde": 0.44130608147741346
+      },
+      "ruedas": 200,
+      "pivot": {
+        "periodo": "2025",
+        "niveles": {
+          "s3": 2.93000094095866,
+          "s2": 17.2800000508626,
+          "s1": 32.9699999491374,
+          "pp": 47.3199990590413,
+          "r1": 63.0099989573161,
+          "r2": 77.35999806722,
+          "r3": 93.0499979654948
+        },
+        "zona": "R1",
+        "anterior": {
+          "nivel": "R1",
+          "precio": 63.0099989573161,
+          "dif": -0.12425293078687916
+        },
+        "siguiente": {
+          "nivel": "R2",
+          "precio": 77.35999806722,
+          "dif": 0.0751911236753704
+        }
+      }
+    },
+    {
+      "ticker": "YPF",
+      "cedear": "YPFD",
+      "rubro": "Energia",
+      "fecha": "2026-10-16",
+      "ultimo": 52.0999984741211,
+      "sma50": 51.8742001342773,
+      "dif50": 0.004352806197672754,
+      "sma200": 45.6653000068665,
+      "dif200": 0.14091002284638532,
+      "senal_precio": "arriba",
+      "tendencia": "alcista",
+      "estado": "alcista",
+      "dist_50_200": 0.13596538567527627,
+      "cruce": {
+        "tipo": "dorado",
+        "fecha": "2025-12-10",
+        "ruedas": 213,
+        "precio": 36.0699996948242,
+        "dif_desde": 0.44441361006157987
+      },
+      "ruedas": 200,
+      "pivot": {
+        "periodo": "2025",
+        "niveles": {
+          "s3": -1.10000101725267,
+          "s2": 10.8599993387858,
+          "s1": 23.5099995930989,
+          "pp": 35.4699999491374,
+          "r1": 48.1200002034505,
+          "r2": 60.080000559489,
+          "r3": 72.7300008138021
+        },
+        "zona": "R1",
+        "anterior": {
+          "nivel": "R1",
+          "precio": 48.1200002034505,
+          "dif": -0.07639152374730929
+        },
+        "siguiente": {
+          "nivel": "R2",
+          "precio": 60.080000559489,
+          "dif": 0.1531670310764346
+        }
+      }
+    }
+  ]
+}

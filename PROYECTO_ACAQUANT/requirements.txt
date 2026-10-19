@@ -1,0 +1,7 @@
+# PROYECTO_ACAQUANT — mismas versiones que los labs del curso (MODULO_5) + el SDK de MCP.
+# Instalación: ./setup.sh   (o: python3 -m venv .venv && . .venv/bin/activate && pip install -r requirements.txt)
+google-adk==2.9.1
+google-genai
+mcp>=2.3.0,<3
+python-dotenv>=1.0.0
+pytest>=8
