@@ -28,7 +28,10 @@ import time
 import warnings
 from typing import Literal
 
+from dotenv import load_dotenv
 from pydantic import BaseModel, Field
+
+load_dotenv()  # GOOGLE_API_KEY y ACAQUANT_MODO desde .env, también con `python -m labs...`
 
 warnings.filterwarnings("ignore", message=r"\[EXPERIMENTAL\]", category=UserWarning)
 try:
@@ -43,7 +46,7 @@ from google.adk.sessions import InMemorySessionService  # noqa: E402
 from google.adk.workflow import START, JoinNode  # noqa: E402
 
 from labs.comite_reglas import LIMITES, armar_mesa, revisar  # noqa: E402
-from puente.acaquant import llamar, modo  # noqa: E402
+from puente.acaquant import cerrar, llamar, modo  # noqa: E402
 
 MODEL = os.getenv("ADK_MODEL", "gemini-2.5-flash")
 
@@ -54,25 +57,30 @@ MODEL = os.getenv("ADK_MODEL", "gemini-2.5-flash")
 class Bono(BaseModel):
     ticker: str
     vencimiento: str
-    meses: float
-    tea: float
-    tem: float
-    mod_duration: float
-    monto_dia_usd: float
+    meses: float | None = None
+    tea_pct: float
+    tem_pct: float | None = None
+    mod_duration: float | None = None
+    monto_dia_usd: float | None = None
 
 
 class Carry(BaseModel):
     ticker: str
-    carry_anual: float
-    roll: float
-    tea_futura: float
+    carry_anual_pct: float
+    roll_pct: float
+    tea_futura_pct: float
 
 
 class Breakeven(BaseModel):
     lecap: str
     cer: str
     meses: float
-    inflacion_mensual_breakeven: float
+    inflacion_mensual_breakeven_pct: float
+
+
+class Fechas(BaseModel):
+    precios_curva: str | None = None
+    riesgo_pais: str | None = None
 
 
 class Dolar(BaseModel):
@@ -94,14 +102,15 @@ class RiesgoPais(BaseModel):
 
 class Mesa(BaseModel):
     """Lo que ve el comité: los números, calculados por AcaQuant, no por el modelo."""
-    fecha_datos: str | None = None
+    fechas: Fechas
+    unidades: str
     curva: str
     bonos: list[Bono]
     carry_3m: list[Carry]
     mejor_carry: str | None = None
     breakevens: list[Breakeven]
     dolar: Dolar
-    caucion_1d_tna: float | None = None
+    caucion_1d_tna_pct: float | None = None
     riesgo_pais: RiesgoPais
 
 
@@ -121,13 +130,8 @@ class Propuesta(BaseModel):
     accion: Literal["COMPRAR", "ESPERAR"] = Field(description="COMPRAR un bono de la curva o ESPERAR")
     bono: str | None = Field(default=None, description="Ticker exacto de la mesa si COMPRAR; null si ESPERAR")
     tamano_pct: float = Field(description="% del patrimonio: 0 si ESPERAR, 0.5-5.0 si COMPRAR")
-    conviccion: int = Field(description="0 a 100")
+    conviccion: int = Field(ge=0, le=100, description="0 a 100")
     tesis: str = Field(description="Máximo 200 palabras: por qué ese bono y ese tamaño, con números")
-
-
-class PropuestaYMesa(BaseModel):
-    portfolio_manager: Propuesta
-    mesa_b: Mesa
 
 
 # ---------------------------------------------------------------------------
@@ -135,6 +139,7 @@ class PropuestaYMesa(BaseModel):
 # ---------------------------------------------------------------------------
 async def cargar_mesa(node_input) -> Event:
     t0 = time.perf_counter()
+    fuente = modo()
     try:
         curva, carry, bes, dolar, cau, rp = await asyncio.gather(
             llamar("rf_curva", curva="tasa_fija"),
@@ -144,11 +149,11 @@ async def cargar_mesa(node_input) -> Event:
             llamar("caucion", moneda="ARS"),
             llamar("macro_serie", variable="riesgo_pais", ventana_dias=60),
         )
+        mesa = armar_mesa(curva, carry, bes, dolar, cau, rp)  # adentro: si el MCP cambia de forma, también es SIN_DATOS
     except Exception as e:  # sin datos no hay comité: se corta antes de gastar tokens
-        print(f"  [cargar_mesa] falló el puente ({modo()}): {type(e).__name__}: {e}")
-        return Event(output={"motivo": str(e)}, route="SIN_DATOS")
-    mesa = armar_mesa(curva, carry, bes, dolar, cau, rp)
-    print(f"  [cargar_mesa] (0 tokens, modo {modo()}) {len(mesa['bonos'])} bonos, mejor carry {mesa['mejor_carry']}, "
+        print(f"  [cargar_mesa] falló el puente ({fuente}): {type(e).__name__}: {e}")
+        return Event(output={"motivo": f"{type(e).__name__}: {e}"}, route="SIN_DATOS")
+    print(f"  [cargar_mesa] (0 tokens, modo {fuente}) {len(mesa['bonos'])} bonos, mejor carry {mesa['mejor_carry']}, "
           f"riesgo país {mesa['riesgo_pais']['bps']} bps (z={mesa['riesgo_pais']['zscore_60d']}) en {time.perf_counter() - t0:.2f}s")
     return Event(output=mesa, route="DATOS_OK")
 
@@ -175,6 +180,7 @@ analista_curva = Agent(
         "Sos analista de renta fija en pesos de una mesa argentina. Recibís la curva de tasa fija "
         "(LECAP/BONCAP) con TEA, TEM, duration y volumen; el ranking de carry + roll-down a 3 meses; "
         "y los breakevens de inflación LECAP vs CER.\n"
+        "Todas las tasas y variaciones vienen en porcentaje (sufijo _pct); la duration en años.\n"
         "Escribí un Informe corto: forma de la curva (¿dónde se empina?), dónde está el mejor carry "
         "y por qué, qué inflación mensual descuenta el mercado, y si la tasa real que paga la curva "
         "contra ese breakeven es atractiva. Citá tickers y números exactos de la mesa; no inventes datos."
@@ -189,6 +195,7 @@ analista_macro = Agent(
     instruction=(
         "Sos el estratega macro de la mesa. Recibís dólar MEP/CCL/oficial con sus retornos, el canje, "
         "la caución a 1 día y el riesgo país con su z-score y percentil de 60 días.\n"
+        "Todas las tasas y variaciones vienen en porcentaje (sufijo _pct).\n"
         "Escribí un Informe corto sobre el régimen (¿estrés o calma?): presión cambiaria, costo del "
         "dinero a un día vs la curva, y qué dice el riesgo país. Terminá con qué implica para tomar "
         "duration en pesos hoy. Citá números exactos de la mesa; no inventes datos."
@@ -241,7 +248,9 @@ def oficial_riesgo(node_input) -> Event:
 
 
 def fin_aprobada(node_input) -> Event:
-    return Event(output={"decision": "EJECUTAR", **node_input})
+    # APROBADA no siempre es comprar: una propuesta de ESPERAR pasa riesgo sin hacer nada.
+    compra = str(node_input["propuesta"].get("accion", "")).upper() == "COMPRAR"
+    return Event(output={"decision": "EJECUTAR la compra" if compra else "ESPERAR (el PM no propuso comprar)", **node_input})
 
 
 def fin_vetada(node_input) -> Event:
@@ -292,17 +301,26 @@ async def main() -> None:
     print(f"=== LAB 01: COMITÉ DE RENTA FIJA EN PESOS (ADK 2 Graph Workflow · datos AcaQuant, modo {modo()}) ===")
     print(f"    límites del oficial de riesgo: {LIMITES}")
     t0 = time.perf_counter()
-    async for event in runner.run_async(user_id="mesa", session_id="comite_1", new_message=None):
-        autor = getattr(event, "author", "") or ""
-        if event.content and event.content.parts:
-            for p in event.content.parts:
-                if p.text:
-                    print(f"\n[{autor}]\n{p.text}")
-        elif event.output and isinstance(event.output, dict) and "decision" in event.output:
-            print(f"\n[DECISIÓN FINAL] {event.output['decision']}")
-            for m in event.output.get("motivos", []):
-                print(f"   · {m}")
-    print(f"\n  Tiempo total: {time.perf_counter() - t0:.1f}s (3 llamadas al modelo: 2 analistas en paralelo + PM; riesgo en código)")
+    decision = None
+    try:
+        async for event in runner.run_async(user_id="mesa", session_id="comite_1", new_message=None):
+            autor = getattr(event, "author", "") or ""
+            if event.content and event.content.parts:
+                for p in event.content.parts:
+                    if p.text:
+                        print(f"\n[{autor}]\n{p.text}")
+            elif event.output and isinstance(event.output, dict) and "decision" in event.output:
+                decision = event.output
+                print(f"\n[DECISIÓN FINAL] {decision['decision']}")
+                for m in decision.get("motivos", []):
+                    print(f"   · {m}")
+                if decision.get("motivo"):
+                    print(f"   · {decision['motivo']}")
+    finally:
+        await cerrar()  # la sesión MCP compartida, si la hubo
+    llamadas = "0 llamadas al modelo" if decision and "SIN COMITÉ" in decision["decision"] else \
+        "3 llamadas al modelo: 2 analistas en paralelo + PM; riesgo en código"
+    print(f"\n  Tiempo total: {time.perf_counter() - t0:.1f}s ({llamadas})")
 
 
 if __name__ == "__main__":

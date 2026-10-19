@@ -39,7 +39,10 @@ PROYECTO_ACAQUANT/
 | `mcp` | `https://api.acaquant.com/mcp` con el SDK oficial `mcp` + login de Cloudflare Access en el navegador | ver el comité opinar sobre el mercado de HOY |
 
 Por diseño, el MCP de mercado **no tiene nada del negocio de la mesa** (clientes, carteras,
-operaciones, P&L): acá no puede entrar un dato privado, y los fixtures se pueden commitear.
+operaciones, P&L). Los 8 fixtures que hay se revisaron uno por uno: solo precios, tasas, duration,
+volumen y la auditoría de cálculo. Un fixture **nuevo** (`--capturar`) es otra cosa: el MCP sirve
+cálculos propios de AcaQuant y texto libre de la mesa (`trading_ideas`), y lo que se captura se
+commitea. Antes de commitear uno, abrilo y decidí si puede ir al repo.
 
 ## Setup (una vez)
 
@@ -50,7 +53,9 @@ cd PROYECTO_ACAQUANT
 ./run.sh 1                 # Lab 01 con los fixtures
 ```
 
-Python 3.10+ (probado con 3.13), `google-adk==2.9.1` (la versión del Módulo 5) y `mcp>=2.3`.
+Python **3.11+** (probado con 3.13; lo exige `httpx2`, que trae `mcp` 2.x), `google-adk==2.9.1`
+(la versión del Módulo 5) y `mcp>=2.3`. **Venv propio**: `mcp` 2.x no convive con
+`google-adk[mcp]` del Módulo 4 (pinea `mcp<2`); no mezclar los dos entornos.
 
 ### Modo vivo (opcional)
 
@@ -60,12 +65,24 @@ Python 3.10+ (probado con 3.13), `google-adk==2.9.1` (la versión del Módulo 5)
 ACAQUANT_MODO=mcp ./run.sh 1
 ```
 
+Quién puede: el backend exige email **con rol `admin`** de AcaQuant (`api/mcp/server.py`); otro
+rol se loguea bien en Cloudflare y recibe 403 al llamar.
+
 **PENDIENTE (lo tiene que hacer el admin de Cloudflare, una sola vez):** en la app `acaquant-mcp`
 de Access, Advanced settings → Managed OAuth → **Allow localhost / loopback clients: ON**. Sin eso
-el login no puede volver a `http://127.0.0.1:8765/callback` y `./run.sh diag` lo va a mostrar como
-error. Hasta correr el diag, el modo vivo es **hipótesis sin medir**: el cliente está escrito contra
-la API del SDK `mcp` 2.3 y el flujo OAuth documentado en `docs/MCP.md` del backend, pero no se probó
-de punta a punta. El modo fixtures sí está verificado (los tests corren sobre la captura real).
+el login no puede volver a `http://127.0.0.1:8765/callback`.
+
+**Estado del modo vivo: HIPÓTESIS SIN MEDIR.** Lo que está verificado y lo que no:
+
+| Verificado (tests, sin red) | Sin medir (hace falta correr `./run.sh diag`) |
+|---|---|
+| Cómo se interpreta un `CallToolResult` del SDK 2.3 (`is_error`, `structured_content`) | Que Cloudflare Managed OAuth acepte el cliente público con redirect loopback y el `iss` que manda |
+| El archivo de tokens (0600, atómico, atado a URL y puerto) | Que el descubrimiento OAuth arranque bien desde `…/mcp/` |
+| El servidor de callback (ignora favicon, se rinde a los 5 min) | Que `Timeout` de 90 s alcance para `trading_cobertura` |
+| Una sola sesión compartida para las 6 llamadas en paralelo | El refresh del token a los 15 min dentro de una corrida larga |
+
+El modo fixtures sí está verificado de punta a punta: los tests corren el grafo entero sobre la
+captura real con un modelo falso.
 
 ## Lab 01 — Comité de inversión en pesos
 
@@ -76,24 +93,34 @@ mirando la **curva de tasa fija argentina** en vez de un ticker de Yahoo.
 
 ```
 START → cargar_mesa (0 tokens: 6 llamadas al puente en paralelo, compactadas por comite_reglas.armar_mesa)
-      → [analista_curva, analista_macro]   (2 LLM en paralelo, cada uno un Informe tipado)
-      → join → portfolio_manager            (1 LLM: Propuesta tipada: COMPRAR <bono> / ESPERAR, tamaño, convicción)
-      → join → oficial_riesgo               (0 tokens: comite_reglas.revisar)
-      → APROBADA | VETADA
+      → [analista_curva, analista_macro, mesa_a]   (2 LLM en paralelo + la mesa pasando de largo)
+      → join_informes → distribuir → [portfolio_manager, mesa_b]   (1 LLM: Propuesta tipada)
+      → join_propuesta → oficial_riesgo            (0 tokens: comite_reglas.revisar)
+      → APROBADA | VETADA        (SIN_DATOS si el puente falló: 0 llamadas al modelo)
 ```
+
+`mesa_a` y `mesa_b` son *passthroughs*: en un Graph Workflow los datos viajan por las aristas, así
+que para que el PM y el oficial de riesgo vean la mesa además de los informes, la mesa tiene que
+llegar al mismo `JoinNode` por su propia arista (el mismo truco que `passthrough_datos_auditoria`
+en el Módulo 5).
 
 Qué enseña, y dónde se ve:
 
 - **Los números los calcula AcaQuant, no el modelo.** TEA, duration, carry, breakevens, z-score
-  del riesgo país llegan hechos. El modelo *lee* y *argumenta*; si inventa un número, el contrato
-  Pydantic y el oficial de riesgo lo frenan (un ticker que no está en la mesa = veto).
+  del riesgo país llegan hechos y **todos en porcentaje** (sufijo `_pct`: el MCP mezcla fracciones
+  con porcentajes y un modelo que compara 0.26 con 18.6 razona mal sin que nada falle). El modelo
+  *lee* y *argumenta*. Lo que se frena en código es lo que entra a la decisión: el contrato
+  Pydantic valida la forma (convicción 0-100, acción válida) y el oficial de riesgo el ticker, el
+  tamaño, la convicción, la liquidez y la duration. Un número inventado dentro del texto de la
+  tesis **no** lo detecta nadie: ese es el trabajo del Lab 06 (guardrails).
 - **El veto vive en código y es auditable** (`labs/comite_reglas.py::revisar`): tope por nombre,
   convicción mínima, liquidez mínima en USD y «con riesgo país en máximo no se estira duration».
   Los límites son didácticos, no una política de riesgo real, y cada veto dice exactamente por qué.
 - **Cuánto cuesta**: 3 llamadas al modelo por corrida (los dos analistas van en paralelo), todo lo
   demás es código. Con la key gratuita de AI Studio alcanza de sobra.
-- **Reproducible**: con `fixtures` los datos son siempre los mismos (2026-10-19); lo único que
-  cambia entre corridas es lo que dice el modelo, igual que en los labs del Módulo 2.
+- **Reproducible**: con `fixtures` los datos son siempre los mismos (precios del 2026-10-19,
+  riesgo país del 16: cada fuente lleva su fecha en `mesa.fechas`); lo único que cambia entre
+  corridas es lo que dice el modelo, igual que en los labs del Módulo 2.
 
 Diferencias a propósito con el libro: dos analistas en vez de cuatro (no hay noticias ni
 fundamentals de un bono; curva y macro es lo que mira una mesa de pesos), un solo modelo (Gemini

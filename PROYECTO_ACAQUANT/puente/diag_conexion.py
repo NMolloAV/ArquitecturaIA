@@ -8,7 +8,13 @@ captura una herramienta como fixture. Salida compartible: conteos y veredictos.
 Qué tiene que pasar la primera vez: se abre el navegador, Cloudflare Access
 pide el email + código, y vuelve a http://127.0.0.1:8765/callback. Para eso
 la app `acaquant-mcp` de Access tiene que tener prendido «Allow localhost /
-loopback clients» (docs/MCP.md del backend). Si no, el error llega acá.
+loopback clients» (docs/MCP.md del backend) y el email tiene que ser ADMIN de
+AcaQuant (si no, el backend contesta 403). Si algo falla, el error llega acá.
+
+OJO con `--capturar`: guarda lo que devuelva CUALQUIER herramienta del MCP en
+puente/fixtures/ y eso se commitea. El MCP no tiene datos de clientes, pero sí
+cálculos propios de AcaQuant y texto libre de la mesa (trading_ideas): antes
+de commitear un fixture nuevo, abrilo y decidí si puede ir a un repo.
 """
 from __future__ import annotations
 
@@ -18,16 +24,30 @@ import sys
 import time
 import traceback
 
+from dotenv import load_dotenv
+
+load_dotenv()
 os.environ["ACAQUANT_MODO"] = "mcp"
 
 from puente.acaquant import ARCHIVO_TOKENS, URL_MCP, SesionMCP, guardar_fixture  # noqa: E402
+
+
+def _valor(v: str):
+    if v.lower() in ("true", "false"):
+        return v.lower() == "true"
+    for tipo in (int, float):
+        try:
+            return tipo(v)
+        except ValueError:
+            pass
+    return v
 
 
 def _parsear_args(pares: list[str]) -> dict:
     out = {}
     for p in pares:
         k, _, v = p.partition("=")
-        out[k] = int(v) if v.lstrip("-").isdigit() else v
+        out[k] = _valor(v)
     return out
 
 
@@ -45,7 +65,8 @@ async def main(argv: list[str]) -> int:
                 nombre, args = argv[i + 1], _parsear_args(argv[i + 2:])
                 datos = await s.llamar(nombre, **args)
                 ruta = guardar_fixture(nombre, args, datos)
-                print(f"[5] capturado {nombre} {args} -> {ruta.name} ({ruta.stat().st_size:,} bytes)")
+                print(f"[5] capturado {nombre} {args} -> {ruta.name} ({ruta.stat().st_size:,} bytes). "
+                      "Revisalo antes de commitearlo.")
             else:
                 curva = await s.llamar("rf_curva", curva="tasa_fija")
                 print(f"[5] rf_curva(tasa_fija): {curva.get('total')} filas, truncado={curva.get('truncado')}")
